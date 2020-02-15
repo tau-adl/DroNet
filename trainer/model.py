@@ -2,10 +2,10 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-# from torch.utils.tensorboard import SummaryWriter
+#from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import Sampler
 from sklearn import svm, metrics
-from skimage import io, transform
+from skimage import io
 import numpy as np
 
 import torchvision
@@ -30,9 +30,9 @@ INPUT_CHANNELS = 3
 CHANNEL_FACTOR = 0.25
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-LOGS_DIR = "./Logs/" + str(datetime.datetime.now().isoformat())
-TRAIN_DATA_DIR = "Train/"
-TEST_DATA_DIR = "Test/"
+LOGS_DIR = "Logs"
+TRAIN_DATA_DIR = os.path.join("Small_Data", "Train")
+TEST_DATA_DIR = os.path.join("Small_Data", "Test")
 
 
 class DroNet(nn.Module):
@@ -137,14 +137,14 @@ class DroNet(nn.Module):
     return x5
 
 
-# def save_results(results, file_path):
-#   pandas.DataFrame.from_dict(
-#         results, 
-#         orient = 'columns',
-#     ).to_csv(f'{file_path}.csv')
+def save_results(results, file_path):
+    pandas.DataFrame.from_dict(
+            results, 
+            orient = 'columns',
+     ).to_csv(f'{file_path}.csv')
 
-#   with open(f'{file_path}.json', 'w', encoding='utf-8') as fd:
-#     json.dump(results, fd, ensure_ascii=False, indent=4)
+    with open(f'{file_path}.json', 'w', encoding='utf-8') as fd:
+         json.dump(results, fd, ensure_ascii=False, indent=4)
 
 
 def plot_convergence_graph(results, legend=None):
@@ -251,7 +251,7 @@ def get_loss(net, data_loader):
 class DroneImagesDataSet(torch.utils.data.Dataset):
     """Drone Images dataset"""
 
-    def __init__(self, labels_path, root_dir, transform=None):
+    def __init__(self, labels_path, root_dir):
         """
         Args:
             labels_path (string): Path to the labels file.
@@ -259,13 +259,13 @@ class DroneImagesDataSet(torch.utils.data.Dataset):
         """
         self.labels_path = labels_path
         self.root_dir = root_dir
-        self.transform = transform
 
         with open(labels_path, 'r') as fd:
         	labels = fd.read()
         	labels = labels.split()
 
         self.labels = labels
+        self.transform = transforms.Compose([transforms.ToTensor()])
 
     def __len__(self):
         return len(self.labels)
@@ -277,28 +277,30 @@ class DroneImagesDataSet(torch.utils.data.Dataset):
         label = self.labels[idx].split(";")
         img_name = os.path.join(self.root_dir, label[0]+".jpg")
         image = io.imread(img_name)
-        image = np.rollaxis(image, 2, 0)
-        label = np.array(label[1::]).astype('float')
+        #image = self.transform(np.rollaxis(image, 2, 0))
+        image = self.transform(image)
+        label = [float(elt) for elt in label]
+        label = torch.FloatTensor(label[1::])
         sample = {'image': image, 'label': label}
-
-        if self.transform:
-            sample = self.transform(sample)
 
         return sample
 
 
 def train_and_evaluate():
-	train_data = DroneImagesDataSet(labels_path=TRAIN_DATA_DIR + 'labels.txt', root_dir=TRAIN_DATA_DIR)
-	train_loader = torch.utils.data.DataLoader(train_data, batch_size=DATA_BATCH_SIZE, shuffle=False)
+    os.mkdir(LOGS_DIR)
+    train_labels_path = os.path.join(TRAIN_DATA_DIR, 'labels.txt')
+    train_data = DroneImagesDataSet(labels_path=train_labels_path, root_dir=TRAIN_DATA_DIR)
+    train_loader = torch.utils.data.DataLoader(train_data, batch_size=DATA_BATCH_SIZE, shuffle=False)
 
-	test_data = DroneImagesDataSet(labels_path=TEST_DATA_DIR + 'labels.txt', root_dir=TEST_DATA_DIR)
-	test_loader = torch.utils.data.DataLoader(test_data, batch_size=DATA_BATCH_SIZE, shuffle=False)
+    test_labels_path = os.path.join(TEST_DATA_DIR, 'labels.txt')
+    test_data = DroneImagesDataSet(labels_path=test_labels_path, root_dir=TEST_DATA_DIR)
+    test_loader = torch.utils.data.DataLoader(test_data, batch_size=DATA_BATCH_SIZE, shuffle=False)
 
-	net = DroNet()
-	net.to(DEVICE)
-	results = train_net(net, train_loader, test_loader, tensor_board_path=LOGS_DIR)
+    net = DroNet()
+    net.to(DEVICE)
+    results = train_net(net, train_loader, test_loader, tensor_board_path=LOGS_DIR)
 
-	# Saving our training model:
-	path = os.path.join(LOGS_DIR, str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")))
-	torch.save(net.state_dict(), path)
-	# save_results(results, path)
+    # Saving our training model:
+    path = os.path.join(LOGS_DIR, "net")
+    torch.save(net.state_dict(), path)
+    save_results(results, path)
