@@ -1,32 +1,22 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-#from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import Sampler
-from sklearn import svm, metrics
-from skimage import io
-import numpy as np
+from . import DroNet
+from . import DataSet
+from . import Utils
 
-import torchvision
-import torchvision.transforms as transforms
+import torch
+import torch.optim as optim
+#from torch.utils.tensorboard import SummaryWriter
 
 import os
-import json
-import pandas
-import csv
 import datetime
-import matplotlib.pyplot as plt
 
 
-LEARNING_RATE = 0.005
 NUMBER_OF_EPOCHS = 1
+LEARNING_RATE = 0.005
 WEIGHT_DECAY_RATE = 0.01
 DATA_BATCH_SIZE = 10
 DROPOUT_PROBABILITY = 0.5
 
 INPUT_CHANNELS = 3
-
 CHANNEL_FACTOR = 0.25
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -35,158 +25,9 @@ TRAIN_DATA_DIR = os.path.join("Small_Data", "Train")
 TEST_DATA_DIR = os.path.join("Small_Data", "Test")
 
 
-class DroNet(nn.Module):
-  '''
-  DroNet Netwrok
-  '''
-  def __init__(self):
-    super().__init__()
-
-    # Layer 0
-    self.layer_0_conv1 = nn.Conv2d(INPUT_CHANNELS, int(32*CHANNEL_FACTOR), 5, stride=2, padding=2)
-    self.layer_0_maxpool1 = nn.MaxPool2d(3, stride=2)
-
-    # Layer 1
-    self.layer_1_1_conv1 = nn.Conv2d(int(32*CHANNEL_FACTOR), int(32*CHANNEL_FACTOR), 3, stride=2, padding=1)
-    self.layer_1_1_conv2 = nn.Conv2d(int(32*CHANNEL_FACTOR), int(32*CHANNEL_FACTOR), 3, padding=1)
-    self.layer_1_2_conv1 = nn.Conv2d(int(32*CHANNEL_FACTOR), int(32*CHANNEL_FACTOR), 1, stride=2)
-
-    # Layer 2
-    self.layer_2_1_conv1 = nn.Conv2d(int(32*CHANNEL_FACTOR), int(64*CHANNEL_FACTOR), 3, stride=2, padding=1)
-    self.layer_2_1_conv2 = nn.Conv2d(int(64*CHANNEL_FACTOR), int(64*CHANNEL_FACTOR), 3, padding=1)
-    self.layer_2_2_conv1 = nn.Conv2d(int(32*CHANNEL_FACTOR), int(64*CHANNEL_FACTOR), 1, stride=2)
-
-    # Layer 3
-    self.layer_3_1_conv1 = nn.Conv2d(int(64*CHANNEL_FACTOR), int(128*CHANNEL_FACTOR), 3, stride=2, padding=1)
-    self.layer_3_1_conv2 = nn.Conv2d(int(128*CHANNEL_FACTOR), int(128*CHANNEL_FACTOR), 3, padding=1)
-    self.layer_3_2_conv1 = nn.Conv2d(int(64*CHANNEL_FACTOR), int(128*CHANNEL_FACTOR), 1, stride=2)
-
-    # Layer 4
-    self.layer_4_dropout = nn.Dropout(DROPOUT_PROBABILITY)
-    self.layer_4_linear = nn.Linear(7 * 10 * int(128*CHANNEL_FACTOR), int(256*CHANNEL_FACTOR))
-
-    # Layer 5
-    self.layer_5_linear = nn.Linear(int(256*CHANNEL_FACTOR), 3)
-
-
-  def forward(self, x):
-    # Layer 0
-    x0 = self.layer_0_conv1(x)
-    x0 = self.layer_0_maxpool1(x0)
-
-    ##########
-    # Layer 1
-    ##########
-    # Layer 1_1
-    x11 = F.relu(x0)
-    x11 = self.layer_1_1_conv1(x11)
-    x11 = F.relu(x11)
-    x11 = self.layer_1_1_conv2(x11)
-
-    # Layer 1_2
-    x12 = self.layer_1_2_conv1(x0)
-
-    # Layer 1 Total
-    x11.add(x12)
-    x1 = x11
-
-    ##########
-    # Layer 2
-    ##########
-    # Layer 2_1
-    x21 = F.relu(x1)
-    x21 = self.layer_2_1_conv1(x21)
-    x21 = F.relu(x21)
-    x21 = self.layer_2_1_conv2(x21)
-
-    # Layer 2_2
-    x22 = self.layer_2_2_conv1(x1)
-
-    # Layer 2 Total
-    x21.add(x22)
-    x2 = x21
-
-    ##########
-    # Layer 3
-    ##########
-    # Layer 3_1
-    x31 = F.relu(x2)
-    x31 = self.layer_3_1_conv1(x31)
-    x31 = F.relu(x31)
-    x31 = self.layer_3_1_conv2(x31)
-
-    # Layer 2_2
-    x32 = self.layer_3_2_conv1(x2)
-
-    # Layer 2 Total
-    x31.add(x32)
-    x3 = x31
-
-    ##########
-    # Layer 4
-    ##########
-    x4 = torch.reshape(x3, (DATA_BATCH_SIZE, -1,))
-    x4 = self.layer_4_dropout(x4)
-    x4 = self.layer_4_linear(x4)
-
-    ##########
-    # Layer 5
-    ##########
-    x5 = self.layer_5_linear(F.relu(x4))
-
-    return x5
-
-
-def save_results(results, file_path):
-    pandas.DataFrame.from_dict(
-            results, 
-            orient = 'columns',
-     ).to_csv(f'{file_path}.csv')
-
-    with open(f'{file_path}.json', 'w', encoding='utf-8') as fd:
-         json.dump(results, fd, ensure_ascii=False, indent=4)
-
-
-def plot_convergence_graph(results, legend=None):
-    if not legend:
-        legend = range(len(results))
-    
-    losses = []
-    for i, result in enumerate(results):
-      losses.append([])
-      losses[i].append([])
-      losses[i].append([])
-      for epoch_result in result:
-        losses[i][0].append(epoch_result["train loss"])
-        losses[i][1].append(epoch_result["test loss"])
-
-    for i, losses in enumerate(losses):
-        train_loss, test_loss = losses
-
-        plt.figure(i)
-        plt.plot(range(1, NUMBER_OF_EPOCHS+1),train_loss)
-        plt.plot(range(1, NUMBER_OF_EPOCHS+1),test_loss, color='r')
-        plt.title(legend[i] + " Loss (blue-train, red-test)")
-        plt.xlabel("epoch")
-        plt.ylabel("loss")
-        plt.grid()
-
-        plt.show()
- 
-
-def show_image(images, classes):
-    np_images = images.numpy()
-    for i, np_img in enumerate(np_images):
-        plt.subplot(1, len(np_images), i+1)
-        plt.imshow(np_img[0], cmap='gray')
-        plt.title(CLASSES[classes[i]])
-
-    plt.show()
-
-
 def train_net(net, train_loader, test_loader, weight_decay=0, tensor_board_path=None):
     # Defining loss function:
-    criterion = nn.MSELoss()
+    criterion = torch.nn.MSELoss()
 
     # Defining optimizer:
     optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE, weight_decay=weight_decay)
@@ -248,59 +89,21 @@ def get_loss(net, data_loader):
     return loss / (i + 1)
 
 
-class DroneImagesDataSet(torch.utils.data.Dataset):
-    """Drone Images dataset"""
-
-    def __init__(self, labels_path, root_dir):
-        """
-        Args:
-            labels_path (string): Path to the labels file.
-            root_dir (string): Directory with all the images.
-        """
-        self.labels_path = labels_path
-        self.root_dir = root_dir
-
-        with open(labels_path, 'r') as fd:
-        	labels = fd.read()
-        	labels = labels.split()
-
-        self.labels = labels
-        self.transform = transforms.Compose([transforms.ToTensor()])
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):   
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        label = self.labels[idx].split(";")
-        img_name = os.path.join(self.root_dir, label[0]+".jpg")
-        image = io.imread(img_name)
-        #image = self.transform(np.rollaxis(image, 2, 0))
-        image = self.transform(image)
-        label = [float(elt) for elt in label]
-        label = torch.FloatTensor(label[1::])
-        sample = {'image': image, 'label': label}
-
-        return sample
-
-
 def train_and_evaluate():
     os.mkdir(LOGS_DIR)
     train_labels_path = os.path.join(TRAIN_DATA_DIR, 'labels.txt')
-    train_data = DroneImagesDataSet(labels_path=train_labels_path, root_dir=TRAIN_DATA_DIR)
+    train_data = DataSet.DroneImagesDataSet(labels_path=train_labels_path, root_dir=TRAIN_DATA_DIR)
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=DATA_BATCH_SIZE, shuffle=False)
 
     test_labels_path = os.path.join(TEST_DATA_DIR, 'labels.txt')
-    test_data = DroneImagesDataSet(labels_path=test_labels_path, root_dir=TEST_DATA_DIR)
+    test_data = DataSet.DroneImagesDataSet(labels_path=test_labels_path, root_dir=TEST_DATA_DIR)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=DATA_BATCH_SIZE, shuffle=False)
 
-    net = DroNet()
+    net = DroNet.DroNet(input_channels=INPUT_CHANNELS, channel_factor=CHANNEL_FACTOR, dropout_probability=DROPOUT_PROBABILITY, batch_size=DATA_BATCH_SIZE)
     net.to(DEVICE)
     results = train_net(net, train_loader, test_loader, tensor_board_path=LOGS_DIR)
 
     # Saving our training model:
     path = os.path.join(LOGS_DIR, "net")
     torch.save(net.state_dict(), path)
-    save_results(results, path)
+    Utils.save_results(results, path)
