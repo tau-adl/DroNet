@@ -99,7 +99,7 @@ class DroNet(nn.Module):
         ##########
         # Layer 4
         ##########
-        x4 = torch.reshape(x3, (self.batch_size, -1,))
+        x4 = torch.reshape(x3, (x3.shape[0], -1,))
         x4 = self.layer_4_dropout(x4)
         x4 = self.layer_4_linear(x4)
 
