@@ -41,7 +41,7 @@ if __name__ == '__main__':
     model.TRAIN_DATA_DIR = args.train_data_paths
     model.TEST_DATA_DIR = args.test_data_paths
     model.DATA_BATCH_SIZE = args.batch_size
-    model.LOGS_DIR = os.path.join(args.output_dir, str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M")))
+    model.LOGS_DIR = os.path.join(args.output_dir, str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))
 
     # Run the training job
     model.train_and_evaluate()
