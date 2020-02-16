@@ -1,4 +1,6 @@
 from . import DroNet
+from . import MultiResDroNet
+from . import DeepDroNet
 from . import DataSet
 from . import Utils
 
@@ -10,7 +12,7 @@ import os
 import datetime
 
 
-NUMBER_OF_EPOCHS = 10
+NUMBER_OF_EPOCHS = 2
 LEARNING_RATE = 0.005
 WEIGHT_DECAY_RATE = 0.01
 DATA_BATCH_SIZE = 10
@@ -99,7 +101,7 @@ def train_and_evaluate():
     test_data = DataSet.DroneImagesDataSet(labels_path=test_labels_path, root_dir=TEST_DATA_DIR)
     test_loader = torch.utils.data.DataLoader(test_data, batch_size=DATA_BATCH_SIZE, shuffle=False)
 
-    net = DroNet.DroNet(input_channels=INPUT_CHANNELS, channel_factor=CHANNEL_FACTOR, dropout_probability=DROPOUT_PROBABILITY, batch_size=DATA_BATCH_SIZE)
+    net = DeepDroNet.DeepDroNet(input_channels=INPUT_CHANNELS, channel_factor=CHANNEL_FACTOR, dropout_probability=DROPOUT_PROBABILITY, batch_size=DATA_BATCH_SIZE)
     net.to(DEVICE)
 
     print("Start training at: " + str(datetime.datetime.now().isoformat()))
