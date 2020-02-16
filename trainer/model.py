@@ -10,7 +10,7 @@ import os
 import datetime
 
 
-NUMBER_OF_EPOCHS = 1
+NUMBER_OF_EPOCHS = 10
 LEARNING_RATE = 0.005
 WEIGHT_DECAY_RATE = 0.01
 DATA_BATCH_SIZE = 10
@@ -101,7 +101,10 @@ def train_and_evaluate():
 
     net = DroNet.DroNet(input_channels=INPUT_CHANNELS, channel_factor=CHANNEL_FACTOR, dropout_probability=DROPOUT_PROBABILITY, batch_size=DATA_BATCH_SIZE)
     net.to(DEVICE)
+
+    print("Start training at: " + str(datetime.datetime.now().isoformat()))
     results = train_net(net, train_loader, test_loader, tensor_board_path=LOGS_DIR)
+    print("Finish training at: " + str(datetime.datetime.now().isoformat()))
 
     # Saving our training model:
     path = os.path.join(LOGS_DIR, "net")
