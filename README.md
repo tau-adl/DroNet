@@ -6,7 +6,7 @@ This repo implements DroNet network as described in:
 
 In addition, this repo was created as part of Deep Learning course in Tel-Aviv University (Course Number: 0510-7255).
 
-## Different Implemented Networks:
+## Implemented Networks:
 
 ### DroNet
 
