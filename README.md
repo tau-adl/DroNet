@@ -17,4 +17,4 @@ In addition, this repo was created as part of Deep Learning course in Tel-Aviv U
 2. In run.sh file, specify the location for the followig directories:
 - TRAIN_DATA_PATH
 - TEST_DATA_PATH
-- OUTPUT_DIR=Logs
+- OUTPUT_DIR (i.e. Logs dir)
