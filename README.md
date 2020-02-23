@@ -10,7 +10,7 @@ In addition, this repo was created as part of Deep Learning course in Tel-Aviv U
 
 ### DroNet
 
-### Multi Res DroNet
+### MultiRes DroNet
 
 ## Training Network
 1. Open a directory for Logs.
