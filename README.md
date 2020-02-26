@@ -1,8 +1,8 @@
 # DroNet
 
 This repo implements DroNet network as described in:
-* Deep Drone Racing: from Simulation to Reality with Domain Randomization / Antonio Loquercio, Elia Kaufmann, Rene Ranftl, Alexey Dosovitskiy, Vladlen Koltun, and Davide Scaramuzza.
-* DroNet: Learning to Fly by Driving / Antonio Loquercio, Ana I. Maqueda, Carlos R. del-Blanco, and Davide Scaramuzza.
+* [Deep Drone Racing: from Simulation to Reality with Domain Randomization / Antonio Loquercio, Elia Kaufmann, Rene Ranftl, Alexey Dosovitskiy, Vladlen Koltun, and Davide Scaramuzza](http://rpg.ifi.uzh.ch/docs/TRO19_Loquercio.pdf).
+* [DroNet: Learning to Fly by Driving / Antonio Loquercio, Ana I. Maqueda, Carlos R. del-Blanco, and Davide Scaramuzza](http://rpg.ifi.uzh.ch/docs/RAL18_Loquercio.pdf)
 
 In addition, this repo was created as part of Deep Learning course in Tel-Aviv University (Course Number: 0510-7255).
 
